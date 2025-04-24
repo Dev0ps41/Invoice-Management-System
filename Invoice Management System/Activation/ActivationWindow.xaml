@@ -1,0 +1,13 @@
+﻿<Window x:Class="Invoice_Management_System.Activation.ActivationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Ενεργοποίηση" Height="200" Width="400" HorizontalAlignment="Center" MinHeight="200" MinWidth="400" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="White">
+    <Grid>
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+            <TextBlock Text="Εισάγετε τον κωδικό ενεργοποίησης:" Margin="5"/>
+            <TextBox x:Name="txtLicenseKey" Width="200" Height="30" Padding="5"/>
+            <Button Content="Ενεργοποίηση" Click="ActivateLicense_Click" Width="150" Margin="10"/>
+        </StackPanel>
+    </Grid>
+</Window>
+

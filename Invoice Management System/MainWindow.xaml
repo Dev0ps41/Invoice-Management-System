@@ -1,0 +1,185 @@
+﻿<Window x:Class="Invoice_Management_System.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Invoice Manager" Height="678" Width="1239" Icon="/icon-invoice.png"
+        MinHeight="678" MinWidth="1239">
+
+    <Window.Background>
+        <ImageBrush ImageSource="/background.jpg" Stretch="UniformToFill"/>
+    </Window.Background>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Μενού -->
+        <Menu VerticalAlignment="Top" Height="20">
+            <Menu.Background>
+                <SolidColorBrush Color="#FFF0F0F0" Opacity="0.5"/>
+            </Menu.Background>
+            <MenuItem Header="Μενού" FontSize="13">
+                <MenuItem Header="Εισαγωγή αρχείου CSV" Click="ImportCSV_Click"/>
+                <MenuItem Header="Εξαγωγή αρχείου CSV" Click="ExportCSV_Click"/>
+            </MenuItem>
+            <MenuItem Header="Εκτύπωση" Click="PrintInvoice_Click" FontSize="13"/>
+            <MenuItem Header="Αναφορές" Click="OpenReports_Click" FontSize="13"/>
+            <MenuItem Header="Ιστορικό" FontSize="13">
+                <MenuItem Header="Καταχωρίσεις Σήμερα" Click="ShowTodayProducts_Click"/>
+                <MenuItem Header="Καταχωρίσεις Χθές" Click="ShowYesterdayProducts_Click"/>
+                <MenuItem Header="Επιλογή Ημερομηνίας" Click="ShowProductsByDate_Click"/>
+                <Separator/>
+                <MenuItem Header="Τελευταία Καταχώρηση" Click="ShowLastProductDate_Click"/>
+                <MenuItem Header="Επαναφορά Όλων" Click="ShowAllProducts_Click"/>
+            </MenuItem>
+
+            <MenuItem Header="Ρυθμίσεις" FontSize="13">
+                <MenuItem Header="Βάση δεδομένων">
+                    <MenuItem Header="Διαγραφή της Βάσης δεδομένων" Click="DeleteAllData_Click"/>
+                </MenuItem>
+            </MenuItem>
+            <MenuItem Header="Βοήθεια" FontSize="13">
+                <MenuItem x:Name="activationStatusMenuItem" Header="Κατάσταση Ενεργοποίησης" Click="OpenActivationWindow"/>
+                <MenuItem Header="Έλεγχος για ενημερώσεις" Click="CheckForUpdates_Click"/>
+                <MenuItem Header="Σχετικά με" Click="ShowInfo_Click" FontSize="13"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- Αναζήτηση -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Grid.Row="0" Margin="50,25,0,5">
+            <TextBlock Text="Αναζήτηση:" Height="20" FontSize="14"/>
+            <TextBox x:Name="txtSearch" Width="170" Padding="5" TextChanged="SearchProduct" Margin="5,0,0,0"/>
+        </StackPanel>
+
+        <!-- Πεδία Εισαγωγής -->
+        <Grid Grid.Row="1" Margin="0,10,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150"/>
+                <ColumnDefinition Width="120"/>
+                <ColumnDefinition Width="150"/>
+                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <ComboBox Grid.Column="0" x:Name="txtSupplier" Padding="5"
+                      IsEditable="True" ItemsSource="{Binding SupplierSuggestions}"
+                      GotFocus="ComboBox_GotFocus" LostFocus="ComboBox_LostFocus" Margin="10,0,5,10"/>
+
+            <ComboBox Grid.Column="1" x:Name="txtProductCode" Width="110" Padding="5"
+                      IsEditable="True" ItemsSource="{Binding ProductCodeSuggestions}"
+                      GotFocus="ComboBox_GotFocus" LostFocus="ComboBox_LostFocus" Margin="5,0,5,10"/>
+
+            <ComboBox Grid.Column="2" x:Name="txtName" Width="140" Padding="5"
+                      IsEditable="True" ItemsSource="{Binding ProductNameSuggestions}"
+                      GotFocus="ComboBox_GotFocus" LostFocus="ComboBox_LostFocus" Margin="5,0,5,10"/>
+
+            <TextBox Grid.Column="3" x:Name="txtStock" Width="90" Padding="5"
+                     Foreground="Gray" Text="Απόθεμα"
+                     GotFocus="TextBox_GotFocus" LostFocus="TextBox_LostFocus" Margin="5,0,5,10"/>
+
+            <TextBox Grid.Column="4" x:Name="txtPrice" Padding="5"
+                     Foreground="Gray" Text="Τιμή"
+                     GotFocus="TextBox_GotFocus" LostFocus="TextBox_LostFocus" Margin="5,0,16,10"/>
+
+            <!-- Προσθήκη -->
+            <Button Grid.Column="5" Padding="4" Click="AddProduct_Click"
+                    Foreground="White" FontWeight="Bold" Width="101"
+                    Background="#FF2DB32D" Height="33" FontFamily="Calibri" FontSize="14" Margin="0,-2,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="✚" FontSize="15" Foreground="White" Margin="0,0,5,0"/>
+                    <TextBlock Text="Προσθήκη"/>
+                </StackPanel>
+            </Button>
+
+            <!-- Αναίρεση -->
+            <Button Grid.Column="6" Padding="4" Click="UndoLastAction_Click"
+                    Foreground="White" FontWeight="Bold" Width="101"
+                    Background="#FFB30000" Height="33" FontFamily="Calibri" FontSize="14" Margin="5,-2,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="↩" FontSize="15" Foreground="White" Margin="0,0,5,0"/>
+                    <TextBlock Text="Αναίρεση"/>
+                </StackPanel>
+            </Button>
+
+            <!-- Επαναφορά -->
+            <Button Grid.Column="7" Padding="4" Click="RedoLastAction_Click"
+                    Foreground="White" FontWeight="Bold" Width="101"
+                    Background="#FFFF9800" Height="33" FontFamily="Calibri" FontSize="14" Margin="5,-2,0,0"
+                    ToolTip="Επαναφορά προηγούμενης αναίρεσης">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="↻" FontSize="15" Foreground="White" Margin="0,0,5,0"/>
+                    <TextBlock Text="Επαναφορά"/>
+                </StackPanel>
+            </Button>
+
+            <!-- Αποθήκευση Όλων -->
+            <Button Grid.Column="8" Padding="4" Click="SaveAll_Click"
+                    Foreground="White" FontWeight="Bold" Width="160"
+                    Background="#FF007ACC" Height="33" FontFamily="Calibri" FontSize="14" Margin="5,-2,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="💾" FontSize="16" Margin="0,0,5,0"/>
+                    <TextBlock Text="Αποθήκευση Όλων"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- Επιβεβαίωση Αποθήκευσης -->
+        <TextBlock x:Name="saveStatusText"
+                   Grid.Row="1"
+                   Grid.ColumnSpan="8"
+                   VerticalAlignment="Bottom"
+                   HorizontalAlignment="Right"
+                   Margin="0,0,10,0"
+                   FontSize="13"
+                   Foreground="Green"
+                   Visibility="Collapsed"
+                   Text="✔ Οι αλλαγές αποθηκεύτηκαν επιτυχώς!" />
+
+        <!-- DataGrid Προϊόντων -->
+        <DataGrid x:Name="productGrid"
+                  Grid.Row="2"
+                  AutoGenerateColumns="False"
+                  SelectionMode="Single"
+                  Margin="0,10,0,0"
+                  SelectionChanged="productGrid_SelectionChanged"
+                  RowEditEnding="productGrid_RowEditEnding">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Προμηθευτής" Binding="{Binding Supplier}" Width="150"/>
+                <DataGridTextColumn Header="Κωδικός" Binding="{Binding ProductCode}" Width="120"/>
+                <DataGridTextColumn Header="Όνομα Προϊόντος" Binding="{Binding Name}" Width="*"/>
+                <DataGridTextColumn Header="Απόθεμα" Binding="{Binding Stock}" Width="100"/>
+                <DataGridTextColumn Header="Τιμή" Binding="{Binding Price, StringFormat=€0.00}" Width="100"/>
+                <DataGridTextColumn Header="Συνολική Αξία"
+                                     Binding="{Binding TotalValue, StringFormat=€0.00}"
+                                     Width="150"
+                                     FontWeight="Bold"
+                                     IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="ToolTip" Value="Υπολογίζεται αυτόματα: Απόθεμα × Τιμή"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTemplateColumn Header="Διαγραφή" Width="100">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Padding="5,2" Click="DeleteProduct_Click"
+                                    Background="Red" Foreground="White" FontWeight="Bold">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🗑" FontSize="16" Foreground="White" Margin="0,0,5,0"/>
+                                    <TextBlock Text="Διαγραφή"/>
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</Window>
