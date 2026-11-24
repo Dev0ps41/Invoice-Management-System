@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Πακέτα ενημέρωσης (build-update.ps1)
+artifacts/

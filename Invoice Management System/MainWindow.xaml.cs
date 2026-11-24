@@ -5,35 +5,23 @@ using Microsoft.Win32;
 using System.IO;
 using System.Collections.Generic;
 using System.Windows.Controls;
+using System.Windows.Markup;
 using System.Windows.Media;
 using System.Collections.ObjectModel;
 using System.Windows.Documents;
 using Invoice_Management_System.Activation;
-using Invoice_Management_System;
-using System.ComponentModel;
+using Invoice_Management_System.Dialogs;
+using Invoice_Management_System.Localization;
 using System.Diagnostics;
-using System.Net;
 using System.Net.Http;
 using Newtonsoft.Json.Linq;
 using Invoice_Management_System.Models;
-using System.IO.Compression;
-using System.Reflection;
 using Microsoft.EntityFrameworkCore;
-
 
 using UndoAction = Invoice_Management_System.Models.UndoAction;
 
-
-
-
-
-
-
 namespace Invoice_Management_System
 {
-
-
-
     public partial class MainWindow : Window
     {
         private readonly AppDbContext _context = new AppDbContext();
@@ -41,89 +29,96 @@ namespace Invoice_Management_System
         private Stack<UndoAction> undoStack = new();
         private Stack<UndoAction> redoStack = new();
 
+        // Όλα τα προϊόντα στη μνήμη, για γρήγορη αναζήτηση χωρίς query σε κάθε πλήκτρο
+        private List<Product> _all = new();
 
         private const string RepoOwner = "Dev0ps41";
         private const string RepoName = "InvoiceManagementSystemUpdates";
         private const string LatestReleaseUrl = $"https://api.github.com/repos/{RepoOwner}/{RepoName}/releases/latest";
 
+        // Το .NET 8 προσθέτει "+<git commit>" στο ProductVersion (π.χ. 1.0.20.0+122eafc…). Το κόβουμε,
+        // αλλιώς φαίνεται στο «Σχετικά» και ο έλεγχος ενημερώσεων βρίσκει πάντα «νέα» έκδοση.
         private static readonly string CurrentVersion =
-            System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).ProductVersion;
-
-
-
+            (System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).ProductVersion ?? "")
+            .Split('+')[0];
 
         public MainWindow()
         {
+            // Μορφή αριθμών/ημερομηνιών σύμφωνα με την επιλεγμένη γλώσσα
+            Language = XmlLanguage.GetLanguage(Loc.Instance.Culture.IetfLanguageTag);
+
             InitializeComponent();
-            CheckLicense(); // Έλεγχος trial/permanent
+            _context.Database.Migrate(); // Δημιουργεί/ενημερώνει τη βάση σε καθαρή εγκατάσταση
+            // Ο έλεγχος άδειας (CheckLicense) γίνεται στο Window_Loaded, ώστε τα μηνύματα να ανοίγουν μέσα στο παράθυρο
             LoadProducts();
             LoadAutoCompleteData();
             DataContext = this; //  Επιτρέπει την αυτόματη σύνδεση των δεδομένων
-
         }
 
+        private static void ShowError(string message) =>
+            InAppDialog.Show(message, Loc.T("Title_Error"), MessageBoxButton.OK, MessageBoxImage.Error);
 
+        /// <summary>Η τελευταία δημοσιευμένη έκδοση στο GitHub και το zip της.</summary>
+        private static async Task<(string Version, string? DownloadUrl)?> FetchLatestReleaseAsync()
+        {
+            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+            client.DefaultRequestHeaders.Add("User-Agent", "InvoiceManager");
+
+            JObject release = JObject.Parse(await client.GetStringAsync(LatestReleaseUrl));
+            string? version = release["tag_name"]?.ToString()?.Trim().TrimStart('v', 'V');
+            if (string.IsNullOrWhiteSpace(version)) return null;
+
+            string? url = release["assets"]?
+                .FirstOrDefault(a => a["name"]?.ToString().EndsWith(".zip", StringComparison.OrdinalIgnoreCase) == true)?
+                ["browser_download_url"]?.ToString();
+            return (version, url);
+        }
+
+        private static async Task<string?> GetLatestVersionAsync() => (await FetchLatestReleaseAsync())?.Version;
+
+        /// <summary>Αληθές μόνο αν η latest είναι ΜΕΤΑΓΕΝΕΣΤΕΡΗ (όχι απλώς διαφορετική) από την τρέχουσα.</summary>
+        private static bool IsNewer(string latest, string current) =>
+            Version.TryParse(latest, out var l) && Version.TryParse(current, out var c)
+                ? l > c
+                : !string.Equals(latest, current, StringComparison.OrdinalIgnoreCase);
 
         private async void CheckForUpdates_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                using (HttpClient client = new HttpClient())
+                var latest = await FetchLatestReleaseAsync();
+                if (latest is not { } release)
                 {
-                    client.DefaultRequestHeaders.Add("User-Agent", "request");
+                    InAppDialog.Show(Loc.T("Upd_NoVersion"), Loc.T("Title_Error"), MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
 
-                    string json = await client.GetStringAsync(LatestReleaseUrl);
-                    JObject release = JObject.Parse(json);
-                    string latestVersion = release["tag_name"]?.ToString()?.Trim().ToLower().Replace("v", "");
+                if (!IsNewer(release.Version, CurrentVersion))
+                {
+                    updateBadge.Visibility = Visibility.Collapsed;
+                    InAppDialog.Show(Loc.T("Upd_Latest", CurrentVersion), Loc.T("Upd_Title"), MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
 
-                    if (string.IsNullOrWhiteSpace(latestVersion))
-                    {
-                        MessageBox.Show("Δεν βρέθηκε έκδοση ενημέρωσης.", "Σφάλμα", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
+                var result = InAppDialog.Show(
+                    Loc.T("Upd_Available", release.Version, CurrentVersion),
+                    Loc.T("Upd_AvailableTitle"),
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Information);
 
-                    if (latestVersion == CurrentVersion.ToLower())
-                    {
-                        MessageBox.Show($"Η εφαρμογή είναι ήδη στην τελευταία έκδοση ({CurrentVersion}).", "Έλεγχος Ενημέρωσης", MessageBoxButton.OK, MessageBoxImage.Information);
-                        return;
-                    }
-
-                    // 🔔 Νέα ειδοποίηση για backup
-                    var result = MessageBox.Show(
-                        $"Νέα έκδοση {latestVersion} είναι διαθέσιμη (τρέχουσα: {CurrentVersion}).\n\n" +
-                        "⚠️ Πριν προχωρήσεις, **συνιστάται να κάνεις εξαγωγή της βάσης δεδομένων** (CSV) από το μενού.\n\n" +
-                        "Θέλεις να συνεχίσεις με την ενημέρωση;",
-                        "Διαθέσιμη Ενημέρωση",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Warning
-                    );
-
-                    if (result == MessageBoxResult.Yes)
-                    {
-                        string downloadUrl = release["assets"]?[0]?["browser_download_url"]?.ToString();
-                        if (!string.IsNullOrEmpty(downloadUrl))
-                        {
-                            await DownloadAndInstallUpdate(downloadUrl);
-                        }
-                        else
-                        {
-                            MessageBox.Show("Δεν βρέθηκε το αρχείο ενημέρωσης.", "Σφάλμα", MessageBoxButton.OK, MessageBoxImage.Error);
-                        }
-                    }
+                if (result == MessageBoxResult.Yes)
+                {
+                    if (!string.IsNullOrEmpty(release.DownloadUrl))
+                        await DownloadAndInstallUpdate(release.DownloadUrl);
+                    else
+                        ShowError(Loc.T("Upd_NoFile"));
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Σφάλμα κατά τον έλεγχο ενημερώσεων:\n" + ex.Message, "Σφάλμα", MessageBoxButton.OK, MessageBoxImage.Error);
+                ShowError(Loc.T("Upd_CheckError", ex.Message));
             }
         }
-
-
-
-
-
-
-
 
         private async Task DownloadAndInstallUpdate(string downloadUrl)
         {
@@ -144,7 +139,7 @@ namespace Invoice_Management_System
 
                 if (!File.Exists(updaterExe))
                 {
-                    MessageBox.Show("Δεν βρέθηκε το αρχείο Updater.exe!", "Σφάλμα", MessageBoxButton.OK, MessageBoxImage.Error);
+                    ShowError(Loc.T("Upd_NoUpdater"));
                     return;
                 }
 
@@ -162,25 +157,18 @@ namespace Invoice_Management_System
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Σφάλμα κατά την ενημέρωση:\n{ex.Message}", "Σφάλμα", MessageBoxButton.OK, MessageBoxImage.Error);
+                ShowError(Loc.T("Upd_InstallError", ex.Message));
             }
         }
 
-
-
-
-
-
-
-
         private void LoadProducts()
         {
-            var products = _context.Products.ToList();
-            productGrid.ItemsSource = products;
+            _all = _context.Products.ToList();
+            productGrid.ItemsSource = _all;
 
-            if (products.Any()) // Αν υπάρχουν προϊόντα, ενημέρωσε τα πεδία εισαγωγής
+            if (_all.Any()) // Αν υπάρχουν προϊόντα, ενημέρωσε τα πεδία εισαγωγής
             {
-                var lastProduct = products.Last(); // Παίρνουμε το τελευταίο προϊόν που προστέθηκε
+                var lastProduct = _all.Last(); // Παίρνουμε το τελευταίο προϊόν που προστέθηκε
                 txtSupplier.Text = lastProduct.Supplier;
                 txtProductCode.Text = lastProduct.ProductCode;
                 txtName.Text = lastProduct.Name;
@@ -188,7 +176,6 @@ namespace Invoice_Management_System
                 txtPrice.Text = lastProduct.Price.ToString("0.00");
             }
         }
-
 
         public ObservableCollection<string> SupplierSuggestions { get; set; } = new();
         public ObservableCollection<string> ProductCodeSuggestions { get; set; } = new();
@@ -215,24 +202,13 @@ namespace Invoice_Management_System
             }
         }
 
-
-
-
-
         // Εμφάνιση πληροφοριών εφαρμογής
         private void ShowInfo_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show(
-                $"📌 Διαχείριση Τιμολογίων\n\n" +
-                $"🛠 Ανάπτυξη: Christos Zioulos\n" +
-                $"🛠 Email: christos.zioulos@gmail.com\n" +
-                $"📅 Έκδοση: {CurrentVersion} Swiss Made\n" +
-                $"📂 Υποστηριζόμενα αρχεία: CSV\n" +
-                $"💾 Αποθήκευση: Βάση δεδομένων SQL Server\n\n" +
-                $"🔹 Μπορείς να εισάγεις, να επεξεργαστείς και να διαγράψεις προϊόντα.\n" +
-                $"🔹 Υποστηρίζεται εισαγωγή & εξαγωγή αρχείων CSV.\n\n" +
-                $"✨ Ευχαριστούμε που χρησιμοποιείτε την εφαρμογή! ✨",
-                "Πληροφορίες", MessageBoxButton.OK, MessageBoxImage.Information);
+            var view = new AboutView();
+            InAppDialog.ShowCustom("Invoice Manager", view, width: 440, icon: DialogIcon.Logo,
+                subtitle: Loc.T("About_Version", CurrentVersion),
+                setup: h => { view.OkButton.Click += (_, _) => h.Close(); h.InitialFocus = view.OkButton; });
         }
 
         //  Eκτύπωση
@@ -250,12 +226,12 @@ namespace Invoice_Management_System
         // Δημιουργία FlowDocument για την εκτύπωση
         private FlowDocument CreateFlowDocument()
         {
-            FlowDocument doc = new FlowDocument();
+            FlowDocument doc = new FlowDocument { FontFamily = (FontFamily)FindResource("AppFont"), FontSize = 11 };
             doc.ColumnWidth = 370; // Ρύθμιση πλάτους εκτύπωσης
             doc.PagePadding = new Thickness(50);
 
             // Τίτλος του Invoice
-            Paragraph title = new Paragraph(new Bold(new Run("Τιμολόγιο")))
+            Paragraph title = new Paragraph(new Bold(new Run(Loc.T("Print_Title"))))
             {
                 FontSize = 12,
                 TextAlignment = TextAlignment.Center
@@ -275,12 +251,8 @@ namespace Invoice_Management_System
             // Προσθήκη Header στη λίστα
             TableRowGroup headerGroup = new TableRowGroup();
             TableRow headerRow = new TableRow();
-            headerRow.Cells.Add(new TableCell(new Paragraph(new Bold(new Run("Προμηθευτής")))));
-            headerRow.Cells.Add(new TableCell(new Paragraph(new Bold(new Run("Κωδικός")))));
-            headerRow.Cells.Add(new TableCell(new Paragraph(new Bold(new Run("Όνομα Προϊόντος")))));
-            headerRow.Cells.Add(new TableCell(new Paragraph(new Bold(new Run("Απόθεμα")))));
-            headerRow.Cells.Add(new TableCell(new Paragraph(new Bold(new Run("Τιμή (€)")))));
-            headerRow.Cells.Add(new TableCell(new Paragraph(new Bold(new Run("Συνολική Αξία (€)")))));
+            foreach (var key in new[] { "Field_Supplier", "Field_Code", "Field_Name", "Field_Stock", "Field_Price", "Field_Total" })
+                headerRow.Cells.Add(new TableCell(new Paragraph(new Bold(new Run(Loc.T(key))))));
             headerGroup.Rows.Add(headerRow);
             table.RowGroups.Add(headerGroup);
 
@@ -309,32 +281,32 @@ namespace Invoice_Management_System
         // Διαγραφή όλων των προϊόντων
         private void DeleteAllData_Click(object sender, RoutedEventArgs e)
         {
-            if (MessageBox.Show("Είσαι σίγουρος ότι θέλεις να διαγράψεις όλα τα δεδομένα;", "Επιβεβαίωση Διαγραφής",
-                MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+            if (InAppDialog.Show(Loc.T("DeleteAll_Confirm"), Loc.T("Title_DeleteAll"),
+                MessageBoxButton.YesNo, MessageBoxImage.Warning, danger: true) == MessageBoxResult.Yes)
             {
                 _context.Products.RemoveRange(_context.Products); // Διαγραφή όλων των προϊόντων
                 _context.SaveChanges();
                 LoadProducts(); // Επαναφόρτωση του DataGrid
-                MessageBox.Show("Όλα τα δεδομένα διαγράφηκαν!", "Ολοκλήρωση", MessageBoxButton.OK, MessageBoxImage.Information);
+                InAppDialog.Show(Loc.T("DeleteAll_Done"), Loc.T("Title_Done"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
-
-
 
         private void ImportCSV_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog
             {
-                Filter = "CSV Files (*.csv)|*.csv",
-                Title = "Επιλέξτε αρχείο CSV"
+                Filter = Loc.T("Csv_Filter"),
+                Title = Loc.T("Csv_OpenTitle")
             };
 
             if (openFileDialog.ShowDialog() == true)
             {
                 string[] lines = File.ReadAllLines(openFileDialog.FileName, System.Text.Encoding.UTF8);
-                List<Product> products = new List<Product>();
-                var existingProducts = _context.Products.ToList();
+                // Η μορφή του αρχείου CSV είναι πάντα ελληνική (κόμμα στα δεκαδικά), ανεξάρτητα από τη γλώσσα της εφαρμογής
                 var greekCulture = new System.Globalization.CultureInfo("el-GR");
+
+                int updatedCount = 0;
+                int addedCount = 0;
 
                 foreach (string line in lines.Skip(1)) // Παράκαμψη επικεφαλίδας
                 {
@@ -344,7 +316,7 @@ namespace Invoice_Management_System
 
                     if (values.Length < 5)
                     {
-                        MessageBox.Show($"Παράλειψη γραμμής λόγω ελλιπών δεδομένων: {line}", "Σφάλμα", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        InAppDialog.Show(Loc.T("Csv_SkipIncomplete", line), Loc.T("Title_Error"), MessageBoxButton.OK, MessageBoxImage.Warning);
                         continue;
                     }
 
@@ -354,74 +326,70 @@ namespace Invoice_Management_System
                         string code = values[1].Trim();
                         string name = values[2].Trim();
                         decimal stock = decimal.Parse(values[3].Trim().Replace(",", "."), System.Globalization.CultureInfo.InvariantCulture);
-
-
-                        // Χωρίς αντικατάσταση , με parsing ελληνικού format
                         string priceString = values[4].Trim().Replace("€", "");
                         decimal price = decimal.Parse(priceString, greekCulture);
 
                         if (stock < 0 || price < 0)
                         {
-                            MessageBox.Show($"Παράλειψη γραμμής με αρνητική τιμή ή απόθεμα: {line}", "Προειδοποίηση", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            InAppDialog.Show(Loc.T("Csv_SkipNegative", line), Loc.T("Title_Warning"), MessageBoxButton.OK, MessageBoxImage.Warning);
                             continue;
                         }
 
-                        bool exists = existingProducts.Any(p => p.ProductCode == code && p.Name == name);
-                        if (exists)
+                        // Πρώτα στα προϊόντα που έχουν ήδη προστεθεί από αυτό το αρχείο (δεν έχουν σωθεί ακόμα), μετά στη βάση
+                        var existing = _context.Products.Local.FirstOrDefault(p => p.ProductCode == code && p.Name == name)
+                                    ?? _context.Products.FirstOrDefault(p => p.ProductCode == code && p.Name == name);
+                        if (existing != null)
                         {
-                            MessageBox.Show($"Το προϊόν \"{name}\" με κωδικό \"{code}\" υπάρχει ήδη. Παράλειψη.", "Προειδοποίηση", MessageBoxButton.OK, MessageBoxImage.Warning);
-                            continue;
+                            // ➕ Προσθήκη ποσότητας και αξίας – υπολογισμός νέας τιμής
+                            decimal oldQty = existing.Stock;
+                            decimal oldTotal = oldQty * existing.Price;
+                            decimal newTotal = stock * price;
+                            decimal totalQty = oldQty + stock;
+                            decimal totalValue = oldTotal + newTotal;
+
+                            existing.Stock = totalQty;
+                            existing.Price = totalQty > 0 ? totalValue / totalQty : 0;
+                            existing.Supplier = supplier; // Optional: ενημέρωση προμηθευτή
+
+                            _context.Products.Update(existing);
+                            updatedCount++;
                         }
-
-                        var product = new Product
+                        else
                         {
-                            Supplier = supplier,
-                            ProductCode = code,
-                            Name = name,
-                            Stock = stock,
-                            Price = price
-                        };
+                            var product = new Product
+                            {
+                                Supplier = supplier,
+                                ProductCode = code,
+                                Name = name,
+                                Stock = stock,
+                                Price = price
+                            };
 
-                        products.Add(product);
+                            _context.Products.Add(product);
+                            addedCount++;
+                        }
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"Σφάλμα κατά την ανάγνωση της γραμμής:\n{line}\n\n{ex.Message}", "Σφάλμα", MessageBoxButton.OK, MessageBoxImage.Error);
+                        ShowError(Loc.T("Csv_LineError", line, ex.Message));
                     }
                 }
 
-                if (products.Count > 0)
-                {
-                    _context.Products.AddRange(products);
-                    _context.SaveChanges();
-                    LoadProducts();
+                _context.SaveChanges();
+                LoadProducts();
+                ClearFields();
 
-                    MessageBox.Show($"Επιτυχής εισαγωγή {products.Count} προϊόντων!", "Ολοκλήρωση", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    MessageBox.Show("Δεν βρέθηκαν έγκυρα ή νέα δεδομένα στο αρχείο.", "Προσοχή", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-                ClearFields(); // 🔸 Καθαρισμός πεδίων μετά την εισαγωγή CSV
-
+                InAppDialog.Show(Loc.T("Csv_ImportResult", updatedCount, addedCount), Loc.T("Csv_ImportTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
-
-
-
-
-
-
-
-
 
         //  Εξαγωγή σε CSV
         private void ExportCSV_Click(object sender, RoutedEventArgs e)
         {
             SaveFileDialog saveFileDialog = new SaveFileDialog
             {
-                Filter = "CSV Files (*.csv)|*.csv",
-                Title = "Αποθήκευση ως CSV"
+                Filter = Loc.T("Csv_Filter"),
+                Title = Loc.T("Csv_SaveTitle")
             };
 
             if (saveFileDialog.ShowDialog() == true)
@@ -433,9 +401,10 @@ namespace Invoice_Management_System
 
                 using (StreamWriter writer = new StreamWriter(saveFileDialog.FileName, false, utf8WithBom))
                 {
-                    // Επικεφαλίδες στα ελληνικά
-                    writer.WriteLine("Προμηθευτής;Κωδικός;Όνομα Προϊόντος;Απόθεμα;Τιμή (€);Συνολική Αξία (€)");
+                    // Επικεφαλίδες στη γλώσσα της εφαρμογής (η εισαγωγή αγνοεί την πρώτη γραμμή)
+                    writer.WriteLine(string.Join(";", new[] { "Field_Supplier", "Field_Code", "Field_Name", "Field_Stock", "Field_Price", "Field_Total" }.Select(Loc.T)));
 
+                    // Οι αριθμοί μένουν σε ελληνική μορφή ώστε το αρχείο να ξαναδιαβάζεται σωστά
                     var greekCulture = new System.Globalization.CultureInfo("el-GR");
 
                     foreach (var product in products)
@@ -443,7 +412,7 @@ namespace Invoice_Management_System
                         string supplier = product.Supplier;
                         string code = product.ProductCode;
                         string name = product.Name;
-                        string stock = product.Stock.ToString("0.##");
+                        string stock = product.Stock.ToString("0.##", greekCulture);
                         string price = product.Price.ToString("0.00", greekCulture); // Με κόμμα
                         string total = (product.Stock * product.Price).ToString("0.00", greekCulture); // Με κόμμα
 
@@ -451,63 +420,9 @@ namespace Invoice_Management_System
                     }
                 }
 
-                MessageBox.Show("Η εξαγωγή ολοκληρώθηκε!", "Επιτυχία", MessageBoxButton.OK, MessageBoxImage.Information);
+                InAppDialog.Show(Loc.T("Csv_ExportDone"), Loc.T("Title_Success"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
-
-
-
-
-
-        private void ComboBox_GotFocus(object sender, RoutedEventArgs e)
-        {
-            if (sender is ComboBox comboBox)
-            {
-                if (comboBox.Foreground == Brushes.Gray)
-                {
-                    comboBox.Text = "";
-                    comboBox.Foreground = Brushes.Black;
-                }
-            }
-        }
-
-        private void ComboBox_LostFocus(object sender, RoutedEventArgs e)
-        {
-            if (sender is ComboBox comboBox)
-            {
-                if (string.IsNullOrWhiteSpace(comboBox.Text))
-                {
-                    if (comboBox == txtSupplier) comboBox.Text = "Προμηθευτής";
-                    else if (comboBox == txtProductCode) comboBox.Text = "Κωδικός";
-                    else if (comboBox == txtName) comboBox.Text = "Όνομα Προϊόντος";
-
-                    comboBox.Foreground = Brushes.Gray;
-                }
-            }
-        }
-
-
-        private void TextBox_GotFocus(object sender, RoutedEventArgs e)
-        {
-            if (sender is TextBox textBox && textBox.Foreground == Brushes.Gray)
-            {
-                textBox.Text = "";
-                textBox.Foreground = Brushes.Black;
-            }
-        }
-
-        private void TextBox_LostFocus(object sender, RoutedEventArgs e)
-        {
-            if (sender is TextBox textBox && string.IsNullOrWhiteSpace(textBox.Text))
-            {
-                if (textBox == txtStock) textBox.Text = "Απόθεμα";
-                else if (textBox == txtPrice) textBox.Text = "Τιμή";
-
-                textBox.Foreground = Brushes.Gray;
-            }
-        }
-
-
 
         //  Επεξεργασία προϊόντος
         private void EditProduct_Click(object sender, RoutedEventArgs e)
@@ -520,8 +435,8 @@ namespace Invoice_Management_System
                 txtStock.Text = selectedProduct.Stock.ToString();
                 txtPrice.Text = selectedProduct.Price.ToString();
 
-                if (MessageBox.Show("Τροποποιήστε τα δεδομένα και πατήστε 'OK' για αποθήκευση.",
-                                    "Επεξεργασία Προϊόντος", MessageBoxButton.OKCancel, MessageBoxImage.Information) == MessageBoxResult.OK)
+                if (InAppDialog.Show(Loc.T("Edit_Prompt"), Loc.T("Edit_Title"),
+                                    MessageBoxButton.OKCancel, MessageBoxImage.Information) == MessageBoxResult.OK)
                 {
                     try
                     {
@@ -537,7 +452,7 @@ namespace Invoice_Management_System
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show("Σφάλμα κατά την ενημέρωση: " + ex.Message, "Σφάλμα", MessageBoxButton.OK, MessageBoxImage.Error);
+                        ShowError(Loc.T("Edit_Error", ex.Message));
                     }
                 }
             }
@@ -598,14 +513,12 @@ namespace Invoice_Management_System
                         }
                         catch (Exception ex)
                         {
-                            MessageBox.Show("Σφάλμα κατά την αποθήκευση: " + ex.Message, "Σφάλμα", MessageBoxButton.OK, MessageBoxImage.Error);
+                            ShowError(Loc.T("Save_Error", ex.Message));
                         }
                     }
                 });
             }
         }
-
-
 
         private void SaveAll_Click(object sender, RoutedEventArgs e)
         {
@@ -622,19 +535,18 @@ namespace Invoice_Management_System
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Σφάλμα κατά την αποθήκευση: " + ex.Message);
+                ShowError(Loc.T("Save_Error", ex.Message));
             }
         }
-
-
 
         //  Διαγραφή προϊόντος
         private void DeleteProduct_Click(object sender, RoutedEventArgs e)
         {
-            if (productGrid.SelectedItem is Product selectedProduct)
+            // Η γραμμή του κουμπιού που πατήθηκε (το κλικ δεν αλλάζει το SelectedItem)
+            if ((sender as FrameworkElement)?.DataContext is Product selectedProduct)
             {
-                if (MessageBox.Show($"Θέλεις να διαγράψεις το προϊόν {selectedProduct.Name};",
-                                    "Επιβεβαίωση Διαγραφής", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                if (InAppDialog.Show(Loc.T("Delete_Confirm", selectedProduct.Name),
+                                    Loc.T("Title_DeleteProduct"), MessageBoxButton.YesNo, MessageBoxImage.Warning, danger: true) == MessageBoxResult.Yes)
                 {
                     undoStack.Push(new UndoAction
                     {
@@ -659,39 +571,25 @@ namespace Invoice_Management_System
             }
         }
 
-
-
-
-
-
-        // Αναζήτηση προϊόντος (διορθωμένο για EF Core)
+        // Αναζήτηση προϊόντος (στη μνήμη, χωρίς query σε κάθε πλήκτρο)
         private void SearchProduct(object sender, TextChangedEventArgs e)
         {
-            string searchText = txtSearch.Text?.Trim().ToLower() ?? "";
+            string q = txtSearch.Text?.Trim() ?? "";
 
-            if (string.IsNullOrWhiteSpace(searchText))
+            if (q.Length == 0)
             {
-                productGrid.ItemsSource = _context.Products.ToList();
+                productGrid.ItemsSource = _all;
                 return;
             }
 
-            var filteredProducts = _context.Products
-                .AsEnumerable() // <<< Διορθώνει το θέμα με το ToString()
-                .Where(p =>
-                    (!string.IsNullOrEmpty(p.Name) && p.Name.ToLower().Contains(searchText)) ||
-                    (!string.IsNullOrEmpty(p.ProductCode) && p.ProductCode.ToLower().Contains(searchText)) ||
-                    (!string.IsNullOrEmpty(p.Supplier) && p.Supplier.ToLower().Contains(searchText)) ||
-                    p.Stock.ToString().Contains(searchText) ||
-                    p.Price.ToString("0.00").Contains(searchText))
+            productGrid.ItemsSource = _all.Where(p =>
+                    (p.Name?.Contains(q, StringComparison.CurrentCultureIgnoreCase) ?? false) ||
+                    (p.ProductCode?.Contains(q, StringComparison.CurrentCultureIgnoreCase) ?? false) ||
+                    (p.Supplier?.Contains(q, StringComparison.CurrentCultureIgnoreCase) ?? false) ||
+                    p.Stock.ToString().Contains(q) ||
+                    p.Price.ToString("0.00").Contains(q))
                 .ToList();
-
-            productGrid.ItemsSource = filteredProducts;
         }
-
-
-
-
-
 
         private void ClearFields()
         {
@@ -710,11 +608,26 @@ namespace Invoice_Management_System
 
         private void OpenReports_Click(object sender, RoutedEventArgs e)
         {
-            ReportsWindow reportsWindow = new ReportsWindow();
-            reportsWindow.Show();
+            var view = new ReportsView();
+            var print = new Button
+            {
+                Style = (Style)FindResource("BtnSecondary"),
+                Height = 40,
+                Padding = new Thickness(14, 0, 14, 0),
+                Content = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Children =
+                    {
+                        new Icon { Data = (Geometry)FindResource("Ico.Printer"), Width = 16, Height = 16, Margin = new Thickness(0, 0, 8, 0) },
+                        new TextBlock { Text = Loc.T("Nav_Print"), FontSize = 13.5 }
+                    }
+                }
+            };
+            print.Click += (_, _) => view.Print();
+            InAppDialog.ShowCustom(Loc.T("Reports_Title"), view, width: 760, subtitle: Loc.T("Rep_Subtitle"),
+                                   icon: DialogIcon.Chart, headerExtra: print);
         }
-
-
 
         private void AddProduct_Click(object sender, RoutedEventArgs e)
         {
@@ -724,7 +637,7 @@ namespace Invoice_Management_System
                 !decimal.TryParse(txtStock.Text.Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal stock) ||
                 !decimal.TryParse(txtPrice.Text.Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal price))
             {
-                MessageBox.Show("Εισάγετε έγκυρα στοιχεία!", "Σφάλμα", MessageBoxButton.OK, MessageBoxImage.Error);
+                ShowError(Loc.T("Invalid_Input"));
                 return;
             }
 
@@ -733,7 +646,13 @@ namespace Invoice_Management_System
 
             if (existingProduct != null)
             {
-                // ⏪ Βήμα 1: Push σε Undo πριν γίνει αλλαγή
+                // Νέα ποσότητα και σταθμισμένη μέση τιμή (χωρίς διαίρεση με το 0)
+                decimal newStock = existingProduct.Stock + stock;
+                decimal newPrice = newStock != 0
+                    ? ((existingProduct.Price * existingProduct.Stock) + (price * stock)) / newStock
+                    : price;
+
+                // ⏪ Push σε Undo πριν γίνει αλλαγή
                 undoStack.Push(new UndoAction
                 {
                     ActionType = UndoType.Update,
@@ -752,15 +671,14 @@ namespace Invoice_Management_System
                         Supplier = existingProduct.Supplier,
                         ProductCode = existingProduct.ProductCode,
                         Name = existingProduct.Name,
-                        Stock = existingProduct.Stock + stock,
-                        Price = ((existingProduct.Price * existingProduct.Stock) + (price * stock)) / (existingProduct.Stock + stock)
+                        Stock = newStock,
+                        Price = newPrice
                     }
                 });
+                redoStack.Clear();
 
-                // Τροποποίηση προϊόντος
-                existingProduct.Stock += stock;
-                decimal newTotalValue = stock * price;
-                existingProduct.Price = ((existingProduct.Price * (existingProduct.Stock - stock)) + newTotalValue) / existingProduct.Stock;
+                existingProduct.Stock = newStock;
+                existingProduct.Price = newPrice;
 
                 _context.SaveChanges();
                 LoadProducts();
@@ -789,14 +707,13 @@ namespace Invoice_Management_System
                 LoadProducts();
             }
             ClearFields(); // 🔹 Καθαρίζει τα πεδία μετά την εισαγωγή
-
         }
 
         private void UndoLastAction_Click(object sender, RoutedEventArgs e)
         {
             if (undoStack.Count == 0)
             {
-                MessageBox.Show("Δεν υπάρχει ενέργεια για αναίρεση.");
+                InAppDialog.Show(Loc.T("Undo_None"));
                 return;
             }
 
@@ -870,17 +787,12 @@ namespace Invoice_Management_System
             LoadProducts();
         }
 
-
-
-
-
-
         // Redo
         private void RedoLastAction_Click(object sender, RoutedEventArgs e)
         {
             if (redoStack.Count == 0)
             {
-                MessageBox.Show("Δεν υπάρχει ενέργεια για επαναφορά.");
+                InAppDialog.Show(Loc.T("Redo_None"));
                 return;
             }
 
@@ -935,14 +847,6 @@ namespace Invoice_Management_System
             LoadProducts();
         }
 
-
-
-
-
-
-
-
-
         // Άνοιγμα παραθύρου εισαγωγής κωδικού
         private void OpenActivationWindow()
         {
@@ -951,12 +855,21 @@ namespace Invoice_Management_System
 
         private void OpenActivationWindow(object sender, RoutedEventArgs e)
         {
-            ActivationWindow activationWindow = new ActivationWindow(_context);
-            activationWindow.ShowDialog();
+            var view = new ActivationView(_context);
+            var activated = InAppDialog.ShowCustom(Loc.T("Act_Title"), view, width: 460, subtitle: Loc.T("Act_Subtitle"),
+                                                   icon: DialogIcon.Key, setup: h =>
+            {
+                view.Activated += () => h.Close(true);
+                h.DefaultAction = view.TryActivate; // Enter στο πεδίο = Ενεργοποίηση
+                h.InitialFocus = view.KeyBox;
+            });
+
+            if (activated is true)
+            {
+                RefreshLicenseUi();
+                InAppDialog.Show(Loc.T("Act_Success"), Loc.T("Title_Success"), MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
-
-
-
 
         private void CheckLicense()
         {
@@ -979,7 +892,7 @@ namespace Invoice_Management_System
             {
                 if ((DateTime.Now - license.ActivationDate).TotalDays > 14)
                 {
-                    MessageBox.Show("Το Trial έχει λήξει! Παρακαλώ εισάγετε κωδικό ενεργοποίησης.", "Λήξη Trial", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    InAppDialog.Show(Loc.T("Trial_Expired"), Loc.T("Trial_ExpiredTitle"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     OpenActivationWindow();
 
                     // Ελέγχει ξανά αν το πρόγραμμα ενεργοποιήθηκε
@@ -987,73 +900,58 @@ namespace Invoice_Management_System
 
                     if (license == null || !license.IsActivated)
                     {
-                        MessageBox.Show("Το πρόγραμμα θα τερματιστεί.", "Λήξη Trial", MessageBoxButton.OK, MessageBoxImage.Error);
+                        InAppDialog.Show(Loc.T("Trial_Shutdown"), Loc.T("Trial_ExpiredTitle"), MessageBoxButton.OK, MessageBoxImage.Error);
                         Application.Current.Shutdown();
                     }
                 }
-
-                activationStatusMenuItem.Header = "Κατάσταση: Trial";
             }
-
+            // Η κάρτα άδειας και το μενού κατάστασης ενημερώνονται στο RefreshLicenseUi() (MainWindow.Dashboard.cs)
         }
 
         // Καταχωρίσεις ΣΗΜΕΡΑ
         private void ShowTodayProducts_Click(object sender, RoutedEventArgs e)
         {
             var today = DateTime.Today;
-            var results = _context.Products
-                .Where(p => p.CreatedAt.Date == today)
-                .ToList();
+            var results = _all.Where(p => p.CreatedAt.Date == today).ToList();
 
             productGrid.ItemsSource = results;
 
             if (!results.Any())
-                MessageBox.Show("Δεν υπάρχουν καταχωρίσεις για σήμερα.", "Ιστορικό", MessageBoxButton.OK, MessageBoxImage.Information);
+                InAppDialog.Show(Loc.T("Hist_NoToday"), Loc.T("Title_History"), MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         // Καταχωρίσεις ΧΘΕΣ
         private void ShowYesterdayProducts_Click(object sender, RoutedEventArgs e)
         {
             var yesterday = DateTime.Today.AddDays(-1);
-            var results = _context.Products
-                .Where(p => p.CreatedAt.Date == yesterday)
-                .ToList();
+            var results = _all.Where(p => p.CreatedAt.Date == yesterday).ToList();
 
             productGrid.ItemsSource = results;
 
             if (!results.Any())
-                MessageBox.Show("Δεν υπάρχουν καταχωρίσεις για χθες.", "Ιστορικό", MessageBoxButton.OK, MessageBoxImage.Information);
+                InAppDialog.Show(Loc.T("Hist_NoYesterday"), Loc.T("Title_History"), MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         // Καταχωρίσεις βάσει ημερομηνίας
         private void ShowProductsByDate_Click(object sender, RoutedEventArgs e)
         {
-            var datePicker = new System.Windows.Controls.DatePicker { SelectedDate = DateTime.Today };
-            var dialog = new Window
+            // Ημερολόγιο μέσα στην εφαρμογή: ένα κλικ σε μέρα κλείνει και φιλτράρει. Πράσινες = μέρες με καταχωρίσεις.
+            var calendar = new MonthCalendar(_all.Select(p => p.CreatedAt));
+            var picked = InAppDialog.ShowCustom(Loc.T("Hist_SelectDate"), calendar, width: 380, icon: DialogIcon.Calendar, setup: h =>
             {
-                Title = "Επιλογή Ημερομηνίας",
-                Content = datePicker,
-                Width = 250,
-                Height = 150,
-                WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                ResizeMode = ResizeMode.NoResize,
-                WindowStyle = WindowStyle.ToolWindow,
-                Owner = this
-            };
+                calendar.DatePicked += d => h.Close(d);
+                h.InitialFocus = calendar.TodayButton;
+            });
 
-            dialog.ShowDialog();
-
-            if (datePicker.SelectedDate.HasValue)
+            if (picked is DateTime pickedDate)
             {
-                DateTime selectedDate = datePicker.SelectedDate.Value.Date;
-                var results = _context.Products
-                    .Where(p => p.CreatedAt.Date == selectedDate)
-                    .ToList();
+                DateTime selectedDate = pickedDate.Date;
+                var results = _all.Where(p => p.CreatedAt.Date == selectedDate).ToList();
 
                 productGrid.ItemsSource = results;
 
                 if (!results.Any())
-                    MessageBox.Show("Δεν υπάρχουν καταχωρίσεις για την επιλεγμένη ημερομηνία.", "Ιστορικό", MessageBoxButton.OK, MessageBoxImage.Information);
+                    InAppDialog.Show(Loc.T("Hist_NoDate"), Loc.T("Title_History"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
@@ -1063,37 +961,26 @@ namespace Invoice_Management_System
             var last = _context.Products.OrderByDescending(p => p.CreatedAt).FirstOrDefault();
             if (last != null)
             {
-                string message =
-                    $"🗓 Τελευταία καταχώρηση:\n\n" +
-                    $"🏷 Προμηθευτής: {last.Supplier}\n" +
-                    $"📌 Όνομα: {last.Name}\n" +
-                    $"🔢 Κωδικός: {last.ProductCode}\n" +
-                    $"📦 Απόθεμα: {last.Stock}\n" +
-                    $"💰 Τιμή: {last.Price:0.00} €\n" +
-                    $"📅 Ημερομηνία: {last.CreatedAt:g}";
-
-                MessageBox.Show(message, "Ιστορικό");
+                InAppDialog.Show(
+                    Loc.T("Hist_Last", last.Supplier, last.Name, last.ProductCode, last.Stock, last.Price, last.CreatedAt),
+                    Loc.T("Title_History"));
             }
             else
             {
-                MessageBox.Show("Δεν υπάρχουν προϊόντα.", "Ιστορικό");
+                InAppDialog.Show(Loc.T("Hist_NoProducts"), Loc.T("Title_History"));
             }
         }
 
-
-        // Επαναφορά Όλων των Καταχωρίσεων
+        // Επαναφορά Όλων των Καταχωρίσεων (κουμπί «Προϊόντα» και chip «Όλα»)
         private void ShowAllProducts_Click(object sender, RoutedEventArgs e)
         {
+            chipAll.IsChecked = true;
+            txtSearch.Text = "";
             LoadProducts();
-            MessageBox.Show("Επαναφέρθηκαν όλες οι καταχωρίσεις.", "Ιστορικό");
         }
-
-
-
 
         private void productGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-
         }
     }
 }

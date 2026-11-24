@@ -8,10 +8,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>invoice-manager.ico</ApplicationIcon>
-	  <Version>1.0.19.0</Version>
-  <AssemblyVersion>1.0.19.0</AssemblyVersion>
-  <FileVersion>1.0.19.0</FileVersion>
+	  <Version>1.1.0.0</Version>
+  <AssemblyVersion>1.1.0.0</AssemblyVersion>
+  <FileVersion>1.1.0.0</FileVersion>
   <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Χωρίς "+<git commit>" στο ProductVersion -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -48,6 +50,10 @@
   <ItemGroup>
     <Resource Include="background.jpg" />
     <Resource Include="icon-invoice.png" />
+    <!-- Γραμματοσειρά Inter (SIL Open Font License, βλ. Fonts/Inter-LICENSE.txt) -->
+    <Resource Include="Fonts\Inter-*.ttf" />
+    <None Remove="Fonts\Inter-*.ttf" />
+    <Content Include="Fonts\Inter-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
