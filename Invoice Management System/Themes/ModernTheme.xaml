@@ -1,0 +1,729 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:local="clr-namespace:Invoice_Management_System">
+
+    <!-- =====================================================================
+         Invoice Manager 1.1 – Premium theme
+         Κείμενα με υψηλή αντίθεση (όλα ≥ 4.5:1, WCAG AA):
+           Ink  #0B1220  κύριο κείμενο
+           Ink2 #334155  δευτερεύον (10:1)
+           Ink3 #475569  ετικέτες / επικεφαλίδες στηλών (7.6:1)
+           Placeholder #64748B (4.8:1)
+         ===================================================================== -->
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Icons.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- ============ Γραμματοσειρές ============ -->
+    <FontFamily x:Key="AppFont">pack://application:,,,/Fonts/#Inter</FontFamily>
+    <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
+
+    <!-- ============ Χρώματα ============ -->
+    <Color x:Key="AccentColor">#4F46E5</Color>
+
+    <SolidColorBrush x:Key="Bg"          Color="#F4F6FA"/>
+    <SolidColorBrush x:Key="Card"        Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="Subtle"      Color="#F7F9FC"/>
+    <SolidColorBrush x:Key="Line"        Color="#E3E8EF"/>
+    <SolidColorBrush x:Key="LineSoft"    Color="#EEF1F5"/>
+    <SolidColorBrush x:Key="LineStrong"  Color="#CBD5E1"/>
+    <SolidColorBrush x:Key="Ink"         Color="#0B1220"/>
+    <SolidColorBrush x:Key="Ink2"        Color="#334155"/>
+    <SolidColorBrush x:Key="Ink3"        Color="#475569"/>
+    <SolidColorBrush x:Key="Placeholder" Color="#64748B"/>
+    <!-- παλιό όνομα, για συμβατότητα -->
+    <SolidColorBrush x:Key="Muted"       Color="#334155"/>
+
+    <SolidColorBrush x:Key="Side"        Color="#0B1220"/>
+    <SolidColorBrush x:Key="SideCard"    Color="#151E30"/>
+    <SolidColorBrush x:Key="SideLine"    Color="#24314A"/>
+    <SolidColorBrush x:Key="SideText"    Color="#E2E8F0"/>
+    <SolidColorBrush x:Key="SideMuted"   Color="#C7D2E0"/>
+    <SolidColorBrush x:Key="SideLabel"   Color="#8A99AF"/>
+
+    <SolidColorBrush x:Key="Accent"      Color="{StaticResource AccentColor}"/>
+    <SolidColorBrush x:Key="AccentHover" Color="#4338CA"/>
+    <SolidColorBrush x:Key="AccentInk"   Color="#4338CA"/>
+    <SolidColorBrush x:Key="AccentSoft"  Color="#EEF0FF"/>
+    <SolidColorBrush x:Key="AccentRing"  Color="#264F46E5"/>
+    <SolidColorBrush x:Key="IndigoSoft"  Color="#E0E7FF"/>
+    <SolidColorBrush x:Key="IndigoInk"   Color="#3730A3"/>
+    <SolidColorBrush x:Key="SkySoft"     Color="#E0F2FE"/>
+    <SolidColorBrush x:Key="SkyInk"      Color="#0369A1"/>
+    <SolidColorBrush x:Key="Green"       Color="#047857"/>
+    <SolidColorBrush x:Key="GreenSoft"   Color="#D1FAE5"/>
+    <SolidColorBrush x:Key="GreenInk"    Color="#065F46"/>
+    <SolidColorBrush x:Key="GreenBright" Color="#34D399"/>
+    <SolidColorBrush x:Key="Amber"       Color="#F59E0B"/>
+    <SolidColorBrush x:Key="AmberSoft"   Color="#FEF3C7"/>
+    <SolidColorBrush x:Key="AmberInk"    Color="#92400E"/>
+    <SolidColorBrush x:Key="AmberIcon"   Color="#B45309"/>
+    <SolidColorBrush x:Key="Red"         Color="#B91C1C"/>
+    <SolidColorBrush x:Key="RedError"    Color="#DC2626"/>
+    <SolidColorBrush x:Key="RedSoft"     Color="#FEE2E2"/>
+    <SolidColorBrush x:Key="RedTint"     Color="#FFF5F5"/>
+    <SolidColorBrush x:Key="RedBorder"   Color="#FECACA"/>
+    <SolidColorBrush x:Key="Yellow"      Color="#FCD34D"/>
+    <SolidColorBrush x:Key="CloseBg"     Color="#F1F4F8"/>
+    <SolidColorBrush x:Key="Backdrop"    Color="#990B1220"/>
+
+    <DropShadowEffect x:Key="CardShadow" BlurRadius="6" ShadowDepth="1" Direction="270" Opacity="0.05" Color="#0B1220"/>
+    <DropShadowEffect x:Key="DialogShadow" BlurRadius="48" ShadowDepth="16" Direction="270" Opacity="0.30" Color="#0B1220"/>
+
+    <!-- ============ Εικονίδιο ============ -->
+    <Style TargetType="{x:Type local:Icon}">
+        <Setter Property="Width" Value="18"/>
+        <Setter Property="Height" Value="18"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type local:Icon}">
+                    <Viewbox Stretch="Uniform">
+                        <Canvas Width="24" Height="24">
+                            <Path Data="{TemplateBinding Data}" Stroke="{TemplateBinding Foreground}"
+                                  StrokeThickness="{TemplateBinding StrokeWidth}"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                        </Canvas>
+                    </Viewbox>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ============ Κείμενα ============ -->
+    <Style x:Key="PageTitle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="28"/>
+        <Setter Property="FontWeight" Value="ExtraBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+    </Style>
+    <Style x:Key="SectionTitle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="17"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style x:Key="KpiLabel" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink2}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style x:Key="KpiValue" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="32"/>
+        <Setter Property="FontWeight" Value="ExtraBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="Margin" Value="0,10,0,10"/>
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+    </Style>
+    <Style x:Key="FieldLabel" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink2}"/>
+        <Setter Property="Margin" Value="0,0,0,6"/>
+    </Style>
+    <Style x:Key="SideSection" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11.5"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{StaticResource SideLabel}"/>
+        <Setter Property="Margin" Value="14,18,0,6"/>
+    </Style>
+
+    <!-- ============ Κάρτα / pill ============ -->
+    <Style x:Key="CardBorder" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource Card}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="16"/>
+        <Setter Property="Padding" Value="20"/>
+        <Setter Property="Effect" Value="{StaticResource CardShadow}"/>
+    </Style>
+
+    <Style x:Key="Pill" TargetType="Border">
+        <Setter Property="CornerRadius" Value="99"/>
+        <Setter Property="Padding" Value="10,4,10,5"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+    </Style>
+    <Style x:Key="PillText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+    </Style>
+
+    <Style x:Key="IconTile" TargetType="Border">
+        <Setter Property="Width" Value="34"/>
+        <Setter Property="Height" Value="34"/>
+        <Setter Property="CornerRadius" Value="10"/>
+    </Style>
+
+    <!-- ============ Κουμπιά ============
+         Ένα template για όλα: hover/pressed με σκουρόχρωμο overlay και δαχτυλίδι εστίασης για πληκτρολόγιο. -->
+    <Style x:Key="BtnBase" TargetType="Button">
+        <Setter Property="Height" Value="44"/>
+        <Setter Property="Padding" Value="18,0"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Background" Value="{StaticResource Accent}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Border x:Name="ring" CornerRadius="13" Margin="-3" BorderThickness="2" BorderBrush="{StaticResource Accent}" Visibility="Collapsed"/>
+                        <Border x:Name="bd" CornerRadius="10"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"/>
+                        <Border x:Name="overlay" CornerRadius="10" Background="#0B1220" Opacity="0"/>
+                        <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="overlay" Property="Opacity" Value="0.07"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="overlay" Property="Opacity" Value="0.14"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="ring" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="BtnPrimary" TargetType="Button" BasedOn="{StaticResource BtnBase}"/>
+
+    <Style x:Key="BtnSuccess" TargetType="Button" BasedOn="{StaticResource BtnBase}">
+        <Setter Property="Background" Value="{StaticResource Green}"/>
+    </Style>
+
+    <Style x:Key="BtnDanger" TargetType="Button" BasedOn="{StaticResource BtnBase}">
+        <Setter Property="Background" Value="{StaticResource Red}"/>
+    </Style>
+
+    <Style x:Key="BtnDark" TargetType="Button" BasedOn="{StaticResource BtnBase}">
+        <Setter Property="Background" Value="{StaticResource Ink}"/>
+        <Setter Property="Padding" Value="24,0"/>
+    </Style>
+
+    <Style x:Key="BtnSecondary" TargetType="Button" BasedOn="{StaticResource BtnBase}">
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource LineStrong}"/>
+    </Style>
+
+    <!-- Τετράγωνο κουμπί-εικονίδιο (Αναίρεση / Επαναφορά) -->
+    <Style x:Key="BtnIcon" TargetType="Button" BasedOn="{StaticResource BtnSecondary}">
+        <Setter Property="Width" Value="44"/>
+        <Setter Property="Padding" Value="0"/>
+    </Style>
+
+    <!-- ✕ κλεισίματος παραθύρων -->
+    <Style x:Key="BtnGhost" TargetType="Button" BasedOn="{StaticResource BtnBase}">
+        <Setter Property="Width" Value="36"/>
+        <Setter Property="Height" Value="36"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Background" Value="{StaticResource CloseBg}"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink2}"/>
+    </Style>
+
+    <!-- Διαγραφή μέσα στον πίνακα -->
+    <Style x:Key="BtnDangerSoft" TargetType="Button" BasedOn="{StaticResource BtnBase}">
+        <Setter Property="Width" Value="36"/>
+        <Setter Property="Height" Value="36"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Background" Value="{StaticResource RedTint}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource RedBorder}"/>
+        <Setter Property="Foreground" Value="{StaticResource Red}"/>
+    </Style>
+
+    <!-- Κουμπί-σύνδεσμος (π.χ. «Ενεργοποίηση άδειας →») -->
+    <Style x:Key="BtnLink" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{StaticResource AccentInk}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <ContentPresenter x:Name="cp" TextElement.Foreground="{TemplateBinding Foreground}"/>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="cp" Property="Opacity" Value="0.8"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ============ Πλαϊνό μενού ============ -->
+    <Style x:Key="NavButton" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource SideText}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="Height" Value="44"/>
+        <Setter Property="Margin" Value="0,2"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" CornerRadius="10" Background="{TemplateBinding Background}" Padding="14,0"
+                            BorderThickness="2" BorderBrush="Transparent">
+                        <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Stretch"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource SideCard}"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="bd" Property="BorderBrush" Value="#A5B4FC"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="NavButtonActive" TargetType="Button" BasedOn="{StaticResource NavButton}">
+        <Setter Property="Background" Value="{StaticResource Accent}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" CornerRadius="10" Background="{TemplateBinding Background}" Padding="14,0"
+                            BorderThickness="2" BorderBrush="Transparent">
+                        <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Stretch"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource AccentHover}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="bd" Property="BorderBrush" Value="#A5B4FC"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ============ Chips φίλτρων (Όλα / Σήμερα / …) ============ -->
+    <Style x:Key="Chip" TargetType="RadioButton">
+        <Setter Property="GroupName" Value="HistoryFilter"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink2}"/>
+        <Setter Property="FontSize" Value="13.5"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="bd" CornerRadius="9" Height="36" Padding="14,0" Background="Transparent"
+                            BorderThickness="2" BorderBrush="Transparent">
+                        <ContentPresenter VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="White"/>
+                            <Setter TargetName="bd" Property="Effect">
+                                <Setter.Value><DropShadowEffect BlurRadius="4" ShadowDepth="1" Direction="270" Opacity="0.14" Color="#0B1220"/></Setter.Value>
+                            </Setter>
+                            <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Επιλογή γλώσσας: επιλεγμένο = σκούρο -->
+    <Style x:Key="LangButton" TargetType="RadioButton">
+        <Setter Property="GroupName" Value="Language"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink2}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="bd" CornerRadius="8" Height="34" MinWidth="44" Padding="8,0" Background="Transparent"
+                            BorderThickness="2" BorderBrush="Transparent">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource CloseBg}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource Ink}"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ============ Πεδία ============ -->
+    <Style x:Key="Input" TargetType="TextBox">
+        <Setter Property="Height" Value="44"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="BorderBrush" Value="{StaticResource LineStrong}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="12,0"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="CaretBrush" Value="{StaticResource Ink}"/>
+        <Setter Property="SelectionBrush" Value="{StaticResource Accent}"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Grid>
+                        <Border x:Name="ring" CornerRadius="13" Margin="-4" BorderThickness="4" BorderBrush="Transparent"/>
+                        <Border x:Name="bd" CornerRadius="10"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <Grid>
+                                <TextBlock x:Name="ph" Text="{TemplateBinding Tag}" Foreground="{StaticResource Placeholder}" FontWeight="Normal"
+                                           Margin="{TemplateBinding Padding}" Padding="2,0" VerticalAlignment="Center"
+                                           TextAlignment="{TemplateBinding TextAlignment}" Visibility="Collapsed" IsHitTestVisible="False"/>
+                                <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Text" Value="">
+                            <Setter TargetName="ph" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="BorderBrush" Value="#94A3B8"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                            <Setter TargetName="bd" Property="BorderThickness" Value="2"/>
+                            <Setter TargetName="ring" Property="BorderBrush" Value="{StaticResource AccentRing}"/>
+                        </Trigger>
+                        <!-- Τελευταίο ώστε να υπερισχύει της εστίασης -->
+                        <Trigger Property="local:InputError.HasError" Value="True">
+                            <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource RedError}"/>
+                            <Setter TargetName="bd" Property="BorderThickness" Value="2"/>
+                            <Setter TargetName="ring" Property="BorderBrush" Value="#26DC2626"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Αναζήτηση: εικονίδιο αριστερά, συντόμευση δεξιά -->
+    <Style x:Key="SearchBox" TargetType="TextBox" BasedOn="{StaticResource Input}">
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="BorderBrush" Value="#D5DCE6"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Grid>
+                        <Border x:Name="ring" CornerRadius="15" Margin="-4" BorderThickness="4" BorderBrush="Transparent"/>
+                        <Border x:Name="bd" CornerRadius="12" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                            <Grid Margin="14,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <local:Icon Data="{StaticResource Ico.Search}" Foreground="{StaticResource Ink3}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="ph" Grid.Column="1" Text="{TemplateBinding Tag}" Foreground="{StaticResource Placeholder}"
+                                           Margin="12,0,0,0" VerticalAlignment="Center" Visibility="Collapsed" IsHitTestVisible="False"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <ScrollViewer x:Name="PART_ContentHost" Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                <Border Grid.Column="2" BorderBrush="#D5DCE6" BorderThickness="1" CornerRadius="6" Padding="6,1"
+                                        VerticalAlignment="Center" Margin="8,0,0,0">
+                                    <TextBlock Text="{TemplateBinding ToolTip}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Ink3}"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Text" Value="">
+                            <Setter TargetName="ph" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                            <Setter TargetName="ring" Property="BorderBrush" Value="{StaticResource AccentRing}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Editable ComboBox: «κέλυφος» με περίγραμμα γύρω από ComboBox χωρίς περίγραμμα -->
+    <Style x:Key="InputShell" TargetType="Border">
+        <Setter Property="Height" Value="44"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="BorderBrush" Value="{StaticResource LineStrong}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="5,0"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="BorderBrush" Value="#94A3B8"/>
+            </Trigger>
+            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+                <Setter Property="BorderThickness" Value="2"/>
+                <Setter Property="Padding" Value="4,0"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="FlatCombo" TargetType="ComboBox">
+        <Setter Property="IsEditable" Value="True"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Padding" Value="6,0"/>
+    </Style>
+
+    <!-- ============ Πίνακας ============ -->
+    <Style x:Key="GridHeader" TargetType="DataGridColumnHeader">
+        <Setter Property="Background" Value="{StaticResource Subtle}"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink3}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Height" Value="44"/>
+        <Setter Property="Padding" Value="16,0"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+        <Setter Property="BorderThickness" Value="0,1,0,1"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridColumnHeader">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="RightHeader" TargetType="DataGridColumnHeader" BasedOn="{StaticResource GridHeader}">
+        <Setter Property="HorizontalContentAlignment" Value="Right"/>
+    </Style>
+    <Style x:Key="FirstHeader" TargetType="DataGridColumnHeader" BasedOn="{StaticResource GridHeader}">
+        <Setter Property="Padding" Value="22,0,16,0"/>
+    </Style>
+
+    <Style x:Key="GridCell" TargetType="DataGridCell">
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="16,0"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                    <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="#F0F2FF"/>
+                <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="ModernGrid" TargetType="DataGrid">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="RowBackground" Value="White"/>
+        <Setter Property="AlternatingRowBackground" Value="White"/>
+        <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+        <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource LineSoft}"/>
+        <Setter Property="HeadersVisibility" Value="Column"/>
+        <Setter Property="RowHeight" Value="56"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="CanUserResizeRows" Value="False"/>
+        <Setter Property="CanUserAddRows" Value="False"/>
+        <Setter Property="SelectionUnit" Value="FullRow"/>
+        <Setter Property="ColumnHeaderStyle" Value="{StaticResource GridHeader}"/>
+        <Setter Property="CellStyle" Value="{StaticResource GridCell}"/>
+        <Setter Property="RowStyle">
+            <Setter.Value>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#F8FAFD"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="NumCell" TargetType="TextBlock">
+        <Setter Property="HorizontalAlignment" Value="Right"/>
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+    </Style>
+    <Style x:Key="NumCellBold" TargetType="TextBlock" BasedOn="{StaticResource NumCell}">
+        <Setter Property="FontWeight" Value="Bold"/>
+    </Style>
+    <Style x:Key="CodeCell" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="#1E293B"/>
+    </Style>
+    <Style x:Key="NameCell" TargetType="TextBlock">
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+    </Style>
+
+    <!-- ============ Λεπτή μπάρα κύλισης ============ -->
+    <Style x:Key="ScrollThumb" TargetType="Thumb">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border x:Name="t" CornerRadius="4" Background="#C3CCD8"/>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="t" Property="Background" Value="#94A3B8"/>
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="t" Property="Background" Value="#64748B"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="ScrollBar">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Width" Value="10"/>
+        <Setter Property="MinWidth" Value="10"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollBar">
+                    <Track x:Name="PART_Track" IsDirectionReversed="True" Margin="2,4">
+                        <Track.Thumb>
+                            <Thumb Style="{StaticResource ScrollThumb}"/>
+                        </Track.Thumb>
+                    </Track>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Width" Value="Auto"/>
+                <Setter Property="MinWidth" Value="0"/>
+                <Setter Property="Height" Value="10"/>
+                <Setter Property="MinHeight" Value="10"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ScrollBar">
+                            <Track x:Name="PART_Track" IsDirectionReversed="False" Margin="4,2">
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource ScrollThumb}"/>
+                                </Track.Thumb>
+                            </Track>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ============ ContextMenu / MenuItem ============ -->
+    <Style TargetType="ContextMenu">
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="HasDropShadow" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Background="White" BorderBrush="{StaticResource LineStrong}" BorderThickness="1" CornerRadius="12" Padding="6">
+                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="MenuItem">
+        <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="bd" CornerRadius="8" Padding="14,0" Height="40" MinWidth="220" Background="Transparent">
+                        <ContentPresenter ContentSource="Header" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource CloseBg}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ============ ToolTip ============ -->
+    <Style TargetType="ToolTip">
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToolTip">
+                    <Border Background="{StaticResource Ink}" CornerRadius="8" Padding="10,6">
+                        <ContentPresenter TextElement.Foreground="White" TextElement.FontSize="12.5" TextElement.FontWeight="Medium"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>
