@@ -206,6 +206,16 @@ namespace Invoice_Management_System.Localization
             ["Csv_LineError"]      = new[] { "Σφάλμα κατά την ανάγνωση της γραμμής:\n{0}\n\n{1}", "Error reading line:\n{0}\n\n{1}", "Fehler beim Lesen der Zeile:\n{0}\n\n{1}" },
             ["Csv_ImportResult"]   = new[] { "🟢 Ενημερώθηκαν: {0}\n🟡 Προστέθηκαν: {1}", "🟢 Updated: {0}\n🟡 Added: {1}", "🟢 Aktualisiert: {0}\n🟡 Hinzugefügt: {1}" },
             ["Csv_ImportTitle"]    = new[] { "Ολοκλήρωση εισαγωγής", "Import complete", "Import abgeschlossen" },
+            ["Csv_ImportingTitle"] = new[] { "Εισαγωγή CSV", "Importing CSV", "CSV-Import" },
+            ["Csv_Progress"]       = new[] { "Διαβάστηκαν {0:N0} γραμμές…", "{0:N0} lines read…", "{0:N0} Zeilen gelesen…" },
+            ["Csv_Summary"]        = new[] { "Διαβάστηκαν {0:N0} γραμμές.\nΝέα προϊόντα: {1:N0}\nΕνημερώθηκαν: {2:N0}", "{0:N0} lines read.\nNew products: {1:N0}\nUpdated: {2:N0}", "{0:N0} Zeilen gelesen.\nNeue Produkte: {1:N0}\nAktualisiert: {2:N0}" },
+            ["Csv_SkippedHeader"]  = new[] { "Παραλείφθηκαν {0:N0} γραμμές:", "{0:N0} lines were skipped:", "{0:N0} Zeilen wurden übersprungen:" },
+            ["Csv_More"]           = new[] { "…και {0:N0} ακόμα", "…and {0:N0} more", "…und {0:N0} weitere" },
+            ["Csv_Err_columns"]    = new[] { "Γραμμή {0}: λιγότερες από 5 στήλες", "Line {0}: fewer than 5 columns", "Zeile {0}: weniger als 5 Spalten" },
+            ["Csv_Err_empty"]      = new[] { "Γραμμή {0}: λείπει κωδικός ή όνομα", "Line {0}: missing code or name", "Zeile {0}: Code oder Name fehlt" },
+            ["Csv_Err_number"]     = new[] { "Γραμμή {0}: μη έγκυρος αριθμός «{1}»", "Line {0}: invalid number “{1}”", "Zeile {0}: ungültige Zahl „{1}“" },
+            ["Csv_Err_negative"]   = new[] { "Γραμμή {0}: αρνητικό απόθεμα ή τιμή", "Line {0}: negative stock or price", "Zeile {0}: negativer Bestand oder Preis" },
+            ["Csv_Failed"]         = new[] { "Η εισαγωγή απέτυχε, δεν αποθηκεύτηκε τίποτα:\n{0}", "Import failed, nothing was saved:\n{0}", "Import fehlgeschlagen, nichts wurde gespeichert:\n{0}" },
             ["Csv_ExportDone"]     = new[] { "Η εξαγωγή ολοκληρώθηκε!", "Export complete!", "Export abgeschlossen!" },
 
             // ---- Άδεια ----

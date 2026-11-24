@@ -293,94 +293,60 @@ namespace Invoice_Management_System
 
         private void ImportCSV_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog
+            var openFileDialog = new OpenFileDialog
             {
                 Filter = Loc.T("Csv_Filter"),
                 Title = Loc.T("Csv_OpenTitle")
             };
+            if (openFileDialog.ShowDialog() != true) return;
 
-            if (openFileDialog.ShowDialog() == true)
-            {
-                string[] lines = File.ReadAllLines(openFileDialog.FileName, System.Text.Encoding.UTF8);
-                // Η μορφή του αρχείου CSV είναι πάντα ελληνική (κόμμα στα δεκαδικά), ανεξάρτητα από τη γλώσσα της εφαρμογής
-                var greekCulture = new System.Globalization.CultureInfo("el-GR");
+            // Η εισαγωγή τρέχει στο παρασκήνιο (CsvImporter), με παράθυρο προόδου μέσα στην εφαρμογή.
+            // Τα προβλήματα συγκεντρώνονται και εμφανίζονται ΜΙΑ φορά στο τέλος.
+            var progressText = new TextBlock { Text = Loc.T("Csv_Progress", 0), FontSize = 14, Foreground = (Brush)FindResource("Ink2") };
+            var bar = new ProgressBar { IsIndeterminate = true, Height = 6, Margin = new Thickness(0, 14, 0, 0),
+                                        Foreground = (Brush)FindResource("Accent"), Background = (Brush)FindResource("LineSoft"), BorderThickness = new Thickness(0) };
+            var body = new StackPanel { Children = { progressText, bar } };
 
-                int updatedCount = 0;
-                int addedCount = 0;
-
-                foreach (string line in lines.Skip(1)) // Παράκαμψη επικεφαλίδας
+            string path = openFileDialog.FileName;
+            object? outcome = null;
+            InAppDialog.ShowCustom(Loc.T("Csv_ImportingTitle"), body, width: 440, subtitle: Path.GetFileName(path),
+                icon: DialogIcon.Info, setup: h =>
                 {
-                    if (string.IsNullOrWhiteSpace(line)) continue;
-
-                    string[] values = line.Split(';');
-
-                    if (values.Length < 5)
-                    {
-                        InAppDialog.Show(Loc.T("Csv_SkipIncomplete", line), Loc.T("Title_Error"), MessageBoxButton.OK, MessageBoxImage.Warning);
-                        continue;
-                    }
-
-                    try
-                    {
-                        string supplier = values[0].Trim();
-                        string code = values[1].Trim();
-                        string name = values[2].Trim();
-                        decimal stock = decimal.Parse(values[3].Trim().Replace(",", "."), System.Globalization.CultureInfo.InvariantCulture);
-                        string priceString = values[4].Trim().Replace("€", "");
-                        decimal price = decimal.Parse(priceString, greekCulture);
-
-                        if (stock < 0 || price < 0)
+                    h.Cancelable = false;
+                    var progress = new Progress<int>(n => progressText.Text = Loc.T("Csv_Progress", n));
+                    Task.Run(() => (object)CsvImporter.Import(path, progress))
+                        .ContinueWith(t =>
                         {
-                            InAppDialog.Show(Loc.T("Csv_SkipNegative", line), Loc.T("Title_Warning"), MessageBoxButton.OK, MessageBoxImage.Warning);
-                            continue;
-                        }
+                            outcome = t.IsFaulted ? t.Exception!.GetBaseException() : t.Result;
+                            h.Close();
+                        }, TaskScheduler.FromCurrentSynchronizationContext());
+                });
 
-                        // Πρώτα στα προϊόντα που έχουν ήδη προστεθεί από αυτό το αρχείο (δεν έχουν σωθεί ακόμα), μετά στη βάση
-                        var existing = _context.Products.Local.FirstOrDefault(p => p.ProductCode == code && p.Name == name)
-                                    ?? _context.Products.FirstOrDefault(p => p.ProductCode == code && p.Name == name);
-                        if (existing != null)
-                        {
-                            // ➕ Προσθήκη ποσότητας και αξίας – υπολογισμός νέας τιμής
-                            decimal oldQty = existing.Stock;
-                            decimal oldTotal = oldQty * existing.Price;
-                            decimal newTotal = stock * price;
-                            decimal totalQty = oldQty + stock;
-                            decimal totalValue = oldTotal + newTotal;
-
-                            existing.Stock = totalQty;
-                            existing.Price = totalQty > 0 ? totalValue / totalQty : 0;
-                            existing.Supplier = supplier; // Optional: ενημέρωση προμηθευτή
-
-                            _context.Products.Update(existing);
-                            updatedCount++;
-                        }
-                        else
-                        {
-                            var product = new Product
-                            {
-                                Supplier = supplier,
-                                ProductCode = code,
-                                Name = name,
-                                Stock = stock,
-                                Price = price
-                            };
-
-                            _context.Products.Add(product);
-                            addedCount++;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        ShowError(Loc.T("Csv_LineError", line, ex.Message));
-                    }
-                }
-
-                _context.SaveChanges();
-                LoadProducts();
-                ClearFields();
-
-                InAppDialog.Show(Loc.T("Csv_ImportResult", updatedCount, addedCount), Loc.T("Csv_ImportTitle"), MessageBoxButton.OK, MessageBoxImage.Information);
+            if (outcome is Exception ex)
+            {
+                ShowError(Loc.T("Csv_Failed", ex.Message));
+                return;
             }
+            if (outcome is not CsvImportResult r) return;
+
+            // Το _context έχει παλιά αντίγραφα των προϊόντων: τα αφήνουμε ώστε να διαβαστούν ξανά από τη βάση
+            _context.ChangeTracker.Clear();
+            undoStack.Clear();
+            redoStack.Clear();
+            LoadProducts();
+            LoadAutoCompleteData();
+            ClearFields();
+
+            var text = new System.Text.StringBuilder(Loc.T("Csv_Summary", r.LinesRead, r.Added, r.Updated));
+            if (r.Skipped > 0)
+            {
+                text.Append("\n\n").Append(Loc.T("Csv_SkippedHeader", r.Skipped));
+                foreach (var p in r.Problems.Take(10))
+                    text.Append('\n').Append(Loc.T("Csv_Err_" + p.Kind, p.LineNumber, p.Value));
+                if (r.Skipped > 10) text.Append('\n').Append(Loc.T("Csv_More", r.Skipped - 10));
+            }
+            InAppDialog.Show(text.ToString(), Loc.T("Csv_ImportTitle"), MessageBoxButton.OK,
+                             r.Skipped > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
         }
 
         //  Εξαγωγή σε CSV
@@ -634,8 +600,8 @@ namespace Invoice_Management_System
             if (string.IsNullOrWhiteSpace(txtSupplier.Text) ||
                 string.IsNullOrWhiteSpace(txtProductCode.Text) ||
                 string.IsNullOrWhiteSpace(txtName.Text) ||
-                !decimal.TryParse(txtStock.Text.Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal stock) ||
-                !decimal.TryParse(txtPrice.Text.Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal price))
+                !CsvImporter.TryParseNumber(txtStock.Text, out decimal stock) ||
+                !CsvImporter.TryParseNumber(txtPrice.Text, out decimal price) || stock < 0 || price < 0)
             {
                 ShowError(Loc.T("Invalid_Input"));
                 return;

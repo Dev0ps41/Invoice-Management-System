@@ -21,6 +21,9 @@ namespace Invoice_Management_System.Dialogs
         /// <summary>Στοιχείο που παίρνει το focus όταν ανοίγει το παράθυρο.</summary>
         public IInputElement? InitialFocus { get; set; }
 
+        /// <summary>false: δεν κλείνει με ✕ / Esc (π.χ. όσο τρέχει μια εισαγωγή). Κλείνει μόνο με Close().</summary>
+        public bool Cancelable { get; set; } = true;
+
         /// <summary>Τι γίνεται με Enter όταν το focus δεν είναι σε κουμπί (π.χ. μέσα σε TextBox).</summary>
         public Action? DefaultAction { get; set; }
 
@@ -241,7 +244,7 @@ namespace Invoice_Management_System.Dialogs
                 if (e.Key == Key.Escape)
                 {
                     e.Handled = true;
-                    handle.Close(null);
+                    if (handle.Cancelable) handle.Close(null);
                 }
                 else if (e.Key == Key.Enter && e.OriginalSource is not ButtonBase)
                 {
@@ -253,6 +256,7 @@ namespace Invoice_Management_System.Dialogs
             };
 
             setup?.Invoke(handle);
+            if (!handle.Cancelable) closeBtn.Visibility = Visibility.Collapsed;
 
             layer.Loaded += (_, _) =>
             {
