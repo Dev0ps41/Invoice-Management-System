@@ -224,7 +224,6 @@ namespace Invoice_Management_System.Dialogs
                 MaxHeight = Math.Max(240, _host.ActualHeight - 48),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
-                Effect = Res<System.Windows.Media.Effects.Effect>("DialogShadow"),
                 RenderTransformOrigin = new Point(0.5, 0.5),
                 RenderTransform = new ScaleTransform(0.96, 0.96),
                 Child = dock
@@ -237,6 +236,23 @@ namespace Invoice_Management_System.Dialogs
             KeyboardNavigation.SetControlTabNavigation(layer, KeyboardNavigationMode.Cycle);
             KeyboardNavigation.SetDirectionalNavigation(layer, KeyboardNavigationMode.Cycle);
             layer.Children.Add(new Border { Background = Res<Brush>("Backdrop") });
+
+            // Η σκιά είναι ΞΕΧΩΡΙΣΤΟ στοιχείο πίσω από την κάρτα: αν έμπαινε Effect στην ίδια την κάρτα,
+            // όλο το κείμενό της θα αποδιδόταν ως εικόνα χωρίς ClearType (θολό).
+            var shadow = new Border
+            {
+                Background = Res<Brush>("Card"),
+                CornerRadius = card.CornerRadius,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Effect = Res<System.Windows.Media.Effects.Effect>("DialogShadow"),
+                RenderTransformOrigin = new Point(0.5, 0.5),
+                RenderTransform = card.RenderTransform,
+                IsHitTestVisible = false
+            };
+            shadow.SetBinding(FrameworkElement.WidthProperty, new System.Windows.Data.Binding(nameof(FrameworkElement.ActualWidth)) { Source = card });
+            shadow.SetBinding(FrameworkElement.HeightProperty, new System.Windows.Data.Binding(nameof(FrameworkElement.ActualHeight)) { Source = card });
+            layer.Children.Add(shadow);
             layer.Children.Add(card);
 
             layer.PreviewKeyDown += (_, e) =>

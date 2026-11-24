@@ -7,6 +7,7 @@
         MinHeight="760" MinWidth="1240" WindowStartupLocation="CenterScreen" WindowState="Maximized"
         Background="{StaticResource Bg}" Foreground="{StaticResource Ink}"
         FontFamily="{StaticResource AppFont}" FontSize="14"
+        UseLayoutRounding="True" TextOptions.TextRenderingMode="ClearType"
         Loaded="Window_Loaded" PreviewKeyDown="Window_PreviewKeyDown">
 
     <Window.Resources>
