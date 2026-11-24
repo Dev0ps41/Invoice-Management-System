@@ -136,7 +136,7 @@
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="CornerRadius" Value="16"/>
         <Setter Property="Padding" Value="20"/>
-        <Setter Property="Effect" Value="{StaticResource CardShadow}"/>
+        <!-- Χωρίς Effect: ένα DropShadowEffect κάνει όλο το περιεχόμενο εικόνα και το κείμενο χάνει το ClearType (θολώνει) -->
     </Style>
 
     <Style x:Key="Pill" TargetType="Border">
@@ -346,9 +346,9 @@
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="bd" Property="Background" Value="White"/>
-                            <Setter TargetName="bd" Property="Effect">
-                                <Setter.Value><DropShadowEffect BlurRadius="4" ShadowDepth="1" Direction="270" Opacity="0.14" Color="#0B1220"/></Setter.Value>
-                            </Setter>
+                            <Setter TargetName="bd" Property="BorderBrush" Value="#D5DCE6"/>
+                            <Setter TargetName="bd" Property="BorderThickness" Value="1"/>
+                            <Setter TargetName="bd" Property="Padding" Value="15,0"/>
                             <Setter Property="Foreground" Value="{StaticResource Ink}"/>
                             <Setter Property="FontWeight" Value="Bold"/>
                         </Trigger>
